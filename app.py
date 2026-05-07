@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import pickle
+import json
 import os
 
 # ============================================================
@@ -16,14 +16,15 @@ st.set_page_config(
 # ============================================================
 # LOAD MODEL & DATA
 # ============================================================
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "model.pkl")
-DATA_PATH = os.path.join(os.path.dirname(__file__), "dataset.csv")
+BASE_DIR = os.path.dirname(__file__)
+MODEL_PATH = os.path.join(BASE_DIR, "model.json")
+DATA_PATH = os.path.join(BASE_DIR, "dataset.csv")
 
 
 @st.cache_resource
 def load_model():
-    with open(MODEL_PATH, "rb") as f:
-        return pickle.load(f)
+    with open(MODEL_PATH, "r") as f:
+        return json.load(f)
 
 
 @st.cache_data
@@ -31,17 +32,20 @@ def load_data():
     return pd.read_csv(DATA_PATH)
 
 
-model = load_model()
+model_data = load_model()
 df = load_data()
 
-FEATURES = [
-    "X2 house age",
-    "X3 distance to the nearest MRT station",
-    "X4 number of convenience stores",
-    "X5 latitude",
-    "X6 longitude",
-]
+FEATURES = model_data["features"]
+COEFS = np.array(model_data["coefficients"])
+INTERCEPT = model_data["intercept"]
+R2_SCORE = model_data["r2_score"]
 TARGET = "Y house price of unit area"
+
+
+def predict(features_values):
+    """Prediksi manual: y = X @ coef + intercept"""
+    return np.dot(features_values, COEFS) + INTERCEPT
+
 
 # ============================================================
 # HELPER
@@ -102,11 +106,8 @@ longitude = st.sidebar.slider(
 # ============================================================
 # PREDIKSI
 # ============================================================
-input_data = pd.DataFrame(
-    [[house_age, mrt_distance, convenience_stores, latitude, longitude]],
-    columns=FEATURES,
-)
-prediction = model.predict(input_data)[0]
+input_values = np.array([house_age, mrt_distance, convenience_stores, latitude, longitude])
+prediction = predict(input_values)
 
 # ============================================================
 # MAIN PAGE
@@ -131,7 +132,7 @@ with col2:
     )
 
 with col3:
-    st.metric(label="📐 Model R² Score", value="0.566")
+    st.metric(label="📐 Model R² Score", value=f"{R2_SCORE:.3f}")
 
 # --- Detail Input ---
 st.markdown("---")
@@ -187,11 +188,11 @@ st.subheader("🔍 Koefisien Model Linear Regression")
 coef_df = pd.DataFrame(
     {
         "Fitur": FEATURES + ["Intercept"],
-        "Koefisien": list(model.coef_) + [model.intercept_],
+        "Koefisien": list(COEFS) + [INTERCEPT],
     }
 )
 st.dataframe(coef_df, use_container_width=True, hide_index=True)
 
 # --- Footer ---
 st.markdown("---")
-st.caption("Dibuat dengan Streamlit • Model: Linear Regression (scikit-learn)")
+st.caption("Dibuat dengan Streamlit • Model: Linear Regression")

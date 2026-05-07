@@ -1,0 +1,12 @@
+{
+  "coefficients": [-2603854.0256, -43086.7547, 11581295.985, 2300298931.6513, -109807491.3483],
+  "intercept": -43665755170.7398,
+  "features": [
+    "X2 house age",
+    "X3 distance to the nearest MRT station",
+    "X4 number of convenience stores",
+    "X5 latitude",
+    "X6 longitude"
+  ],
+  "r2_score": 0.5658
+}
